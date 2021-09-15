@@ -179,26 +179,30 @@ CBUUID *writeCharacteristicUUID;
         return;
     }
     
-    /*
-    NSString *test = @"~hi^XA^FO20,20^BY3^B3N,N,150,Y,N^FDHello World!^FS^XZ";
-    NSString *zpl = [test stringByAppendingString:@"\r\n"];
+    NSUInteger length = [data length];
+    NSUInteger chunkSize = 18;
+    NSUInteger offset = 0;
     
-    NSLog(@"New Data = %@", zpl);
-    NSLog(@"Write Characteristic = %@", characteristic.UUID);
-    
-    const char *bytes = [zpl UTF8String];
-    size_t length = [zpl length];
-    NSData *payload = [NSData dataWithBytes:bytes length:length];
-    */
+    do {
+        NSUInteger thisChunkSize = length - offset > chunkSize ? chunkSize : length - offset;
+        
+        NSData *chunk = [NSData dataWithBytes:(void*)[data bytes] + offset length:thisChunkSize];
 
-    if ((characteristic.properties & CBCharacteristicPropertyWrite) == CBCharacteristicPropertyWrite) {
-        NSLog(@"Write with response");
-        [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
-    }
-    else if ((characteristic.properties & CBCharacteristicPropertyWriteWithoutResponse) == CBCharacteristicPropertyWriteWithoutResponse) {
-        NSLog(@"Write without response");
-        [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithoutResponse];
-    }
+        if ((characteristic.properties & CBCharacteristicPropertyWrite) == CBCharacteristicPropertyWrite) {
+            NSLog(@"Write with response");
+            [p writeValue:chunk forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
+     
+        }
+        else if ((characteristic.properties & CBCharacteristicPropertyWriteWithoutResponse) == CBCharacteristicPropertyWriteWithoutResponse) {
+            NSLog(@"Write without response");
+            [p writeValue:chunk forCharacteristic:characteristic type:CBCharacteristicWriteWithoutResponse];
+        }
+        
+        offset += thisChunkSize;
+        
+        [NSThread sleepForTimeInterval:0.005];
+        
+    } while (offset < length);
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)iPeripheral didReceiveWriteRequests:(NSArray *)iRequests {
